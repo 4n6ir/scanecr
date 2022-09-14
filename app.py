@@ -3,12 +3,12 @@ import os
 
 import aws_cdk as cdk
 
-from remedy_scan_ecr_repositories.remedy_scan_ecr_repositories_stack import RemedyScanEcrRepositoriesStack
+from scanecr.scanecr_stack import ScanecrStack
 
 app = cdk.App()
 
-RemedyScanEcrRepositoriesStack(
-    app, 'RemedyScanEcrRepositoriesStack',
+ScanecrStack(
+    app, 'ScanecrStack',
     env = cdk.Environment(
         account = os.getenv('CDK_DEFAULT_ACCOUNT'),
         region = os.getenv('CDK_DEFAULT_REGION')
@@ -18,6 +18,6 @@ RemedyScanEcrRepositoriesStack(
     )
 )
 
-cdk.Tags.of(app).add('scan-ecr-repositories','scan-ecr-repositories')
+cdk.Tags.of(app).add('scanecr','scanecr')
 
 app.synth()
