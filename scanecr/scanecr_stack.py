@@ -154,8 +154,8 @@ class ScanecrStack(Stack):
         assessevent = _events.Rule(
             self, 'assessevent',
             schedule = _events.Schedule.cron(
-                minute = '9',
-                hour = '*',
+                minute = '0',
+                hour = '9',
                 month = '*',
                 week_day = '*',
                 year = '*'
@@ -248,8 +248,8 @@ class ScanecrStack(Stack):
         reportevent = _events.Rule(
             self, 'reportevent',
             schedule = _events.Schedule.cron(
-                minute = '11',
-                hour = '*',
+                minute = '0',
+                hour = '11',
                 month = '*',
                 week_day = '*',
                 year = '*'
