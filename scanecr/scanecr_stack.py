@@ -24,6 +24,13 @@ class ScanecrStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        region = Stack.of(self).region
+
+        layer = _lambda.LayerVersion.from_layer_version_arn(
+            self, 'layer',
+            layer_version_arn = 'arn:aws:lambda:'+region+':070176467818:layer:getpublicip:1'
+        )
+
         try:
             client = boto3.client('account')
             operations = client.get_alternate_contact(
@@ -126,8 +133,11 @@ class ScanecrStack(Stack):
             architecture = _lambda.Architecture.ARM_64,
             runtime = _lambda.Runtime.PYTHON_3_9,
             timeout = Duration.seconds(900),
-            memory_size = 128,
-            role = role
+            memory_size = 256,
+            role = role,
+            layers = [
+                layer
+            ]
         )
        
         assesslogs = _logs.LogGroup(
@@ -173,8 +183,11 @@ class ScanecrStack(Stack):
             architecture = _lambda.Architecture.ARM_64,
             runtime = _lambda.Runtime.PYTHON_3_9,
             timeout = Duration.seconds(900),
-            memory_size = 128,
-            role = role
+            memory_size = 256,
+            role = role,
+            layers = [
+                layer
+            ]
         )
        
         configurelogs = _logs.LogGroup(
@@ -220,10 +233,13 @@ class ScanecrStack(Stack):
             environment = dict(
                 SNS_TOPIC = securitytopic.topic_arn
             ),
-            memory_size = 128,
-            role = role
+            memory_size = 256,
+            role = role,
+            layers = [
+                layer
+            ]
         )
-       
+
         reportlogs = _logs.LogGroup(
             self, 'reportlogs',
             log_group_name = '/aws/lambda/'+report.function_name,
