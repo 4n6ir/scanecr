@@ -18,6 +18,7 @@ ScanecrStack(
     )
 )
 
-cdk.Tags.of(app).add('scanecr','scanecr')
+cdk.Tags.of(app).add('Alias','ALL')
+cdk.Tags.of(app).add('GitHub','https://github.com/4n6ir/scanecr.git')
 
 app.synth()

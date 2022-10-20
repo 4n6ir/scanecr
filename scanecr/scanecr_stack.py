@@ -1,6 +1,3 @@
-import boto3
-import sys
-
 from aws_cdk import (
     CustomResource,
     Duration,
@@ -24,40 +21,34 @@ class ScanecrStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        account = Stack.of(self).account
         region = Stack.of(self).region
+
+        if region == 'ap-northeast-1' or region == 'ap-south-1' or region == 'ap-southeast-1' or \
+            region == 'ap-southeast-2' or region == 'eu-central-1' or region == 'eu-west-1' or \
+            region == 'eu-west-2' or region == 'me-central-1' or region == 'us-east-1' or \
+            region == 'us-east-2' or region == 'us-west-2': number = str(1)
+
+        if region == 'af-south-1' or region == 'ap-east-1' or region == 'ap-northeast-2' or \
+            region == 'ap-northeast-3' or region == 'ap-southeast-3' or region == 'ca-central-1' or \
+            region == 'eu-north-1' or region == 'eu-south-1' or region == 'eu-west-3' or \
+            region == 'me-south-1' or region == 'sa-east-1' or region == 'us-west-1': number = str(2)
 
         layer = _lambda.LayerVersion.from_layer_version_arn(
             self, 'layer',
-            layer_version_arn = 'arn:aws:lambda:'+region+':070176467818:layer:getpublicip:1'
+            layer_version_arn = 'arn:aws:lambda:'+region+':070176467818:layer:getpublicip:'+number
         )
 
-        try:
-            client = boto3.client('account')
-            operations = client.get_alternate_contact(
-                AlternateContactType='OPERATIONS'
-            )
-            security = client.get_alternate_contact(
-                AlternateContactType='SECURITY'
-            )
-        except:
-            print('Missing IAM Permission --> account:GetAlternateContact')
-            sys.exit(1)
-            pass
+### ERROR ###
 
-        operationstopic = _sns.Topic(
-            self, 'operationstopic'
+        error = _lambda.Function.from_function_arn(
+            self, 'error',
+            'arn:aws:lambda:'+region+':'+account+':function:shipit-error'
         )
 
-        operationstopic.add_subscription(
-            _subs.EmailSubscription(operations['AlternateContact']['EmailAddress'])
-        )
-
-        securitytopic = _sns.Topic(
-            self, 'securitytopic'
-        )
-
-        securitytopic.add_subscription(
-            _subs.EmailSubscription(security['AlternateContact']['EmailAddress'])
+        timeout = _lambda.Function.from_function_arn(
+            self, 'timeout',
+            'arn:aws:lambda:'+region+':'+account+':function:shipit-timeout'
         )
 
 ### IAM ###
@@ -87,41 +78,6 @@ class ScanecrStack(Stack):
                 ],
                 resources = ['*']
             )
-        )
-
-        role.add_to_policy(
-            _iam.PolicyStatement(
-                actions = [
-                    'sns:Publish'
-                ],
-                resources = [
-                    operationstopic.topic_arn,
-                    securitytopic.topic_arn
-                ]
-            )
-        )
-
-### ERROR ###
-
-        error = _lambda.Function(
-            self, 'error',
-            runtime = _lambda.Runtime.PYTHON_3_9,
-            code = _lambda.Code.from_asset('error'),
-            handler = 'error.handler',
-            role = role,
-            environment = dict(
-                SNS_TOPIC = operationstopic.topic_arn
-            ),
-            architecture = _lambda.Architecture.ARM_64,
-            timeout = Duration.seconds(7),
-            memory_size = 128
-        )
-
-        errormonitor = _logs.LogGroup(
-            self, 'errormonitor',
-            log_group_name = '/aws/lambda/'+error.function_name,
-            retention = _logs.RetentionDays.ONE_DAY,
-            removal_policy = RemovalPolicy.DESTROY
         )
 
 ### ASSESS ###
@@ -154,10 +110,10 @@ class ScanecrStack(Stack):
             filter_pattern = _logs.FilterPattern.all_terms('ERROR')
         )
 
-        assesstime= _logs.SubscriptionFilter(
-            self, 'assesstime',
+        assesstimesub = _logs.SubscriptionFilter(
+            self, 'assesstimesub',
             log_group = assesslogs,
-            destination = _destinations.LambdaDestination(error),
+            destination = _destinations.LambdaDestination(timeout),
             filter_pattern = _logs.FilterPattern.all_terms('Task','timed','out')
         )
 
@@ -204,10 +160,10 @@ class ScanecrStack(Stack):
             filter_pattern = _logs.FilterPattern.all_terms('ERROR')
         )
 
-        configuretime= _logs.SubscriptionFilter(
-            self, 'configuretime',
+        configuretimesub = _logs.SubscriptionFilter(
+            self, 'configuretimesub',
             log_group = configurelogs,
-            destination = _destinations.LambdaDestination(error),
+            destination = _destinations.LambdaDestination(timeout),
             filter_pattern = _logs.FilterPattern.all_terms('Task','timed','out')
         )
 
@@ -220,56 +176,3 @@ class ScanecrStack(Stack):
             self, 'resource',
             service_token = provider.service_token
         )
-
-### REPORT ###
-
-        report = _lambda.Function(
-            self, 'report',
-            handler = 'report.handler',
-            code = _lambda.Code.from_asset('report'),
-            architecture = _lambda.Architecture.ARM_64,
-            runtime = _lambda.Runtime.PYTHON_3_9,
-            timeout = Duration.seconds(900),
-            environment = dict(
-                SNS_TOPIC = securitytopic.topic_arn
-            ),
-            memory_size = 256,
-            role = role,
-            layers = [
-                layer
-            ]
-        )
-
-        reportlogs = _logs.LogGroup(
-            self, 'reportlogs',
-            log_group_name = '/aws/lambda/'+report.function_name,
-            retention = _logs.RetentionDays.ONE_DAY,
-            removal_policy = RemovalPolicy.DESTROY
-        )
-
-        reportsub = _logs.SubscriptionFilter(
-            self, 'reportsub',
-            log_group = reportlogs,
-            destination = _destinations.LambdaDestination(error),
-            filter_pattern = _logs.FilterPattern.all_terms('ERROR')
-        )
-
-        reporttime= _logs.SubscriptionFilter(
-            self, 'reporttime',
-            log_group = reportlogs,
-            destination = _destinations.LambdaDestination(error),
-            filter_pattern = _logs.FilterPattern.all_terms('Task','timed','out')
-        )
-
-        reportevent = _events.Rule(
-            self, 'reportevent',
-            schedule = _events.Schedule.cron(
-                minute = '0',
-                hour = '11',
-                month = '*',
-                week_day = '*',
-                year = '*'
-            )
-        )
-
-        reportevent.add_target(_targets.LambdaFunction(report))
