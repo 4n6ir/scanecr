@@ -87,6 +87,17 @@ class ScanecrStack(Stack):
             )
         )
 
+        role.add_to_policy(
+            _iam.PolicyStatement(
+                actions = [
+                    'securityhub:BatchImportFindings'
+                ],
+                resources = [
+                    'arn:aws:securityhub:'+region+':'+account+':product/'+account+'/default'
+                ]
+            )
+        )
+
 ### ASSESS ###
 
         assess = _lambda.Function(
@@ -186,4 +197,63 @@ class ScanecrStack(Stack):
         resource = CustomResource(
             self, 'resource',
             service_token = provider.service_token
+        )
+
+### REPORT ###
+
+        report = _lambda.Function(
+            self, 'report',
+            function_name = 'report',
+            handler = 'report.handler',
+            code = _lambda.Code.from_asset('report'),
+            architecture = _lambda.Architecture.ARM_64,
+            runtime = _lambda.Runtime.PYTHON_3_9,
+            timeout = Duration.seconds(900),
+            environment = dict(
+                ACCOUNT = account,
+                REGION = region
+            ),
+            memory_size = 256,
+            role = role,
+            layers = [
+                layer
+            ]
+        )
+
+        reportlogs = _logs.LogGroup(
+            self, 'reportlogs',
+            log_group_name = '/aws/lambda/'+report.function_name,
+            retention = _logs.RetentionDays.ONE_DAY,
+            removal_policy = RemovalPolicy.DESTROY
+        )
+
+        reportsub = _logs.SubscriptionFilter(
+            self, 'reportsub',
+            log_group = reportlogs,
+            destination = _destinations.LambdaDestination(error),
+            filter_pattern = _logs.FilterPattern.all_terms('ERROR')
+        )
+
+        reporttime= _logs.SubscriptionFilter(
+            self, 'reporttime',
+            log_group = reportlogs,
+            destination = _destinations.LambdaDestination(error),
+            filter_pattern = _logs.FilterPattern.all_terms('Task','timed','out')
+        )
+
+        reportevent = _events.Rule(
+            self, 'reportevent',
+            schedule = _events.Schedule.cron(
+                minute = '11',
+                hour = '*',
+                month = '*',
+                week_day = '*',
+                year = '*'
+            )
+        )
+
+        reportevent.add_target(
+            _targets.LambdaFunction(
+                report
+            )
         )
