@@ -34,60 +34,62 @@ def handler(event, context):
                         }
                     )
 
-                    if len(findings['imageScanFindings']['findingSeverityCounts']) > 0:
+                    if findings['imageScanStatus']['status'] != 'FAILED':
 
-                        output = {}
-                        output['registryId'] = findings['registryId']
-                        output['repositoryName'] = findings['repositoryName']
-                        output['imageDigest'] = findings['imageId']['imageDigest']
-                        output['imageTag'] = findings['imageId']['imageTag']
-                        output['imageScanStatus'] = findings['imageScanStatus']['status']
-                        output['imageScanFindings'] = findings['imageScanFindings']['findingSeverityCounts']
+                        if len(findings['imageScanFindings']['findingSeverityCounts']) > 0:
 
-                        right_now = datetime.now(dateutil.tz.tzlocal())
-                        diff = right_now - findings['imageScanFindings']['vulnerabilitySourceUpdatedAt']
+                            output = {}
+                            output['registryId'] = findings['registryId']
+                            output['repositoryName'] = findings['repositoryName']
+                            output['imageDigest'] = findings['imageId']['imageDigest']
+                            output['imageTag'] = findings['imageId']['imageTag']
+                            output['imageScanStatus'] = findings['imageScanStatus']['status']
+                            output['imageScanFindings'] = findings['imageScanFindings']['findingSeverityCounts']
 
-                        if diff.days < 2:
+                            right_now = datetime.now(dateutil.tz.tzlocal())
+                            diff = right_now - findings['imageScanFindings']['vulnerabilitySourceUpdatedAt']
 
-                            account = os.environ['ACCOUNT']
-                            region = os.environ['REGION']
+                            if diff.days < 2:
 
-                            now = datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
+                                account = os.environ['ACCOUNT']
+                                region = os.environ['REGION']
 
-                            securityhub_client = boto3.client('securityhub')
+                                now = datetime.now(timezone.utc).isoformat().replace('+00:00','Z')
 
-                            securityhub_response = securityhub_client.batch_import_findings(
-                                Findings = [
-                                    {
-                                        "SchemaVersion": "2018-10-08",
-                                        "Id": region+"/"+account+"/vuln",
-                                        "ProductArn": "arn:aws:securityhub:"+region+":"+account+":product/"+account+"/default", 
-                                        "GeneratorId": "ecr-vuln",
-                                        "AwsAccountId": account,
-                                        "CreatedAt": now,
-                                        "UpdatedAt": now,
-                                        "Title": "Vuln",
-                                        "Description": str(output),
-                                        "Resources": [
-                                            {
-                                                "Type": "AwsLambda",
-                                                "Id": "arn:aws:lambda:"+region+":"+account+":function:report"
+                                securityhub_client = boto3.client('securityhub')
+
+                                securityhub_response = securityhub_client.batch_import_findings(
+                                    Findings = [
+                                        {
+                                            "SchemaVersion": "2018-10-08",
+                                            "Id": region+"/"+account+"/vuln",
+                                            "ProductArn": "arn:aws:securityhub:"+region+":"+account+":product/"+account+"/default", 
+                                            "GeneratorId": "ecr-vuln",
+                                            "AwsAccountId": account,
+                                            "CreatedAt": now,
+                                            "UpdatedAt": now,
+                                            "Title": "Vuln",
+                                            "Description": str(output),
+                                            "Resources": [
+                                                {
+                                                    "Type": "AwsLambda",
+                                                    "Id": "arn:aws:lambda:"+region+":"+account+":function:report"
+                                                }
+                                            ],
+                                            "FindingProviderFields": {
+                                                "Confidence": 100,
+                                                "Severity": {
+                                                    "Label": "MEDIUM"
+                                                },
+                                                "Types": [
+                                                    "security/ecr/vuln"
+                                                ]
                                             }
-                                        ],
-                                        "FindingProviderFields": {
-                                            "Confidence": 100,
-                                            "Severity": {
-                                                "Label": "MEDIUM"
-                                            },
-                                            "Types": [
-                                                "security/ecr/vuln"
-                                            ]
                                         }
-                                    }
-                                ]
-                            )
+                                    ]
+                                )
 
-                            print(securityhub_response)
+                                print(securityhub_response)
 
     return {
         'statusCode': 200,
