@@ -27,14 +27,18 @@ def handler(event, context):
                 for imageid in page2['imageIds']:
 
                     img_count += 1
-                    ecr.start_image_scan(
-                        registryId = repository['registryId'],
-                        repositoryName = repository['repositoryName'],
-                        imageId = {
-                            'imageDigest': imageid['imageDigest'],
-                            'imageTag': imageid['imageTag']
-                        }
-                    )
+                    try:
+                        ecr.start_image_scan(
+                            registryId = repository['registryId'],
+                            repositoryName = repository['repositoryName'],
+                            imageId = {
+                                'imageDigest': imageid['imageDigest'],
+                                'imageTag': imageid['imageTag']
+                            }
+                        )
+                    except:
+                        print('Scan Quota Exceeded: '+ imageid['imageDigest'])
+                        pass
 
     print('Total Repositories: '+str(repo_count))
     print('Total Images: '+str(img_count))
