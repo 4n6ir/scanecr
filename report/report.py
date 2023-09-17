@@ -51,7 +51,7 @@ def handler(event, context):
 
                             if diff.days < 2:
 
-                                account = os.environ['ACCOUNT']
+                                account = os.environ['AWS_ACCOUNT']
                                 region = os.environ['REGION']
 
                                 now = datetime.now(timezone.utc).isoformat().replace('+00:00','Z')

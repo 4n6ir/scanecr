@@ -8,10 +8,32 @@ from scanecr.scanecr_stack import ScanecrStack
 app = cdk.App()
 
 ScanecrStack(
-    app, 'ScanecrStack',
+    app, 'ScanecrStackUSE1',
     env = cdk.Environment(
         account = os.getenv('CDK_DEFAULT_ACCOUNT'),
-        region = os.getenv('CDK_DEFAULT_REGION')
+        region = 'us-east-1'
+    ),
+    synthesizer = cdk.DefaultStackSynthesizer(
+        qualifier = '4n6ir'
+    )
+)
+
+ScanecrStack(
+    app, 'ScanecrStackUSE2',
+    env = cdk.Environment(
+        account = os.getenv('CDK_DEFAULT_ACCOUNT'),
+        region = 'us-east-2'
+    ),
+    synthesizer = cdk.DefaultStackSynthesizer(
+        qualifier = '4n6ir'
+    )
+)
+
+ScanecrStack(
+    app, 'ScanecrStackUSW2',
+    env = cdk.Environment(
+        account = os.getenv('CDK_DEFAULT_ACCOUNT'),
+        region = 'us-west-2'
     ),
     synthesizer = cdk.DefaultStackSynthesizer(
         qualifier = '4n6ir'

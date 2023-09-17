@@ -81,7 +81,7 @@ class ScanecrStack(Stack):
 
         layer = _lambda.LayerVersion.from_layer_version_arn(
             self, 'layer',
-            layer_version_arn = 'arn:aws:lambda:'+region+':070176467818:layer:getpublicip:5'
+            layer_version_arn = 'arn:aws:lambda:'+region+':070176467818:layer:getpublicip:9'
         )
 
 ### ERROR ###
@@ -142,8 +142,11 @@ class ScanecrStack(Stack):
             handler = 'assess.handler',
             code = _lambda.Code.from_asset('assess'),
             architecture = _lambda.Architecture.ARM_64,
-            runtime = _lambda.Runtime.PYTHON_3_10,
+            runtime = _lambda.Runtime.PYTHON_3_11,
             timeout = Duration.seconds(900),
+            environment = dict(
+                AWS_ACCOUNT = account
+            ),
             memory_size = 256,
             role = role,
             layers = [
@@ -154,7 +157,7 @@ class ScanecrStack(Stack):
         assesslogs = _logs.LogGroup(
             self, 'assesslogs',
             log_group_name = '/aws/lambda/'+assess.function_name,
-            retention = _logs.RetentionDays.ONE_DAY,
+            retention = _logs.RetentionDays.ONE_MONTH,
             removal_policy = RemovalPolicy.DESTROY
         )
 
@@ -196,8 +199,11 @@ class ScanecrStack(Stack):
             handler = 'configure.handler',
             code = _lambda.Code.from_asset('configure'),
             architecture = _lambda.Architecture.ARM_64,
-            runtime = _lambda.Runtime.PYTHON_3_10,
+            runtime = _lambda.Runtime.PYTHON_3_11,
             timeout = Duration.seconds(900),
+            environment = dict(
+                AWS_ACCOUNT = account
+            ),
             memory_size = 256,
             role = role,
             layers = [
@@ -208,7 +214,7 @@ class ScanecrStack(Stack):
         configurelogs = _logs.LogGroup(
             self, 'configurelogs',
             log_group_name = '/aws/lambda/'+configure.function_name,
-            retention = _logs.RetentionDays.ONE_DAY,
+            retention = _logs.RetentionDays.ONE_MONTH,
             removal_policy = RemovalPolicy.DESTROY
         )
 
@@ -244,10 +250,10 @@ class ScanecrStack(Stack):
             handler = 'report.handler',
             code = _lambda.Code.from_asset('report'),
             architecture = _lambda.Architecture.ARM_64,
-            runtime = _lambda.Runtime.PYTHON_3_10,
+            runtime = _lambda.Runtime.PYTHON_3_11,
             timeout = Duration.seconds(900),
             environment = dict(
-                ACCOUNT = account,
+                AWS_ACCOUNT = account,
                 REGION = region
             ),
             memory_size = 256,
@@ -260,7 +266,7 @@ class ScanecrStack(Stack):
         reportlogs = _logs.LogGroup(
             self, 'reportlogs',
             log_group_name = '/aws/lambda/'+report.function_name,
-            retention = _logs.RetentionDays.ONE_DAY,
+            retention = _logs.RetentionDays.ONE_MONTH,
             removal_policy = RemovalPolicy.DESTROY
         )
 
