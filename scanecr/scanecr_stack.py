@@ -179,7 +179,7 @@ class ScanecrStack(Stack):
             self, 'assessevent',
             schedule = _events.Schedule.cron(
                 minute = '0',
-                hour = '9',
+                hour = '11',
                 month = '*',
                 week_day = '*',
                 year = '*'
@@ -288,9 +288,9 @@ class ScanecrStack(Stack):
             self, 'reportevent',
             schedule = _events.Schedule.cron(
                 minute = '0',
-                hour = '11',
+                hour = '0',
                 month = '*',
-                week_day = '*',
+                week_day = 'MON',
                 year = '*'
             )
         )
