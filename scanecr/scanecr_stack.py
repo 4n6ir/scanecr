@@ -287,8 +287,8 @@ class ScanecrStack(Stack):
         reportevent = _events.Rule(
             self, 'reportevent',
             schedule = _events.Schedule.cron(
-                minute = '0',
-                hour = '0',
+                minute = '30',
+                hour = '11',
                 month = '*',
                 week_day = 'MON',
                 year = '*'

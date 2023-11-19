@@ -49,7 +49,7 @@ def handler(event, context):
                             right_now = datetime.now(dateutil.tz.tzlocal())
                             diff = right_now - findings['imageScanFindings']['vulnerabilitySourceUpdatedAt']
 
-                            if diff.days < 2:
+                            if diff.days < 8:
 
                                 account = os.environ['AWS_ACCOUNT']
                                 region = os.environ['REGION']
